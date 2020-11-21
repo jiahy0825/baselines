@@ -35,4 +35,9 @@ src
 
 MUJOCO_LOG.TXT
 
+baselines/bench/__pycache__/
+baselines/common/__pycache__/
+baselines/common/tests/__pycache__/
+baselines/common/tests/envs/__pycache__/
+*/__pycache__/
 *cpython*

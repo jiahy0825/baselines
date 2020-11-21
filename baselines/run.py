@@ -33,6 +33,9 @@ _game_envs = defaultdict(set)
 for env in gym.envs.registry.all():
     # TODO: solve this with regexes
     env_type = env.entry_point.split(':')[0].split('.')[-1]
+    # gym.envs.algorithmic:CopyEnv algorithmic Copy-v0
+    # print(env.entry_point, env_type, env.id)
+    # 最后每个 env_type 对应了一个集合的多个 id
     _game_envs[env_type].add(env.id)
 
 # reading benchmark names directly from retro requires
@@ -52,12 +55,14 @@ _game_envs['retro'] = {
 
 def train(args, extra_args):
     env_type, env_id = get_env_type(args)
-    print('env_type: {}'.format(env_type))
-
+    # env_type: classic_control env_id: CartPole-v0
+    print('env_type: {} env_id: {}'.format(env_type, env_id))
+    # args.num_timesteps = 1e5
     total_timesteps = int(args.num_timesteps)
     seed = args.seed
-
+    # args.alg = deepq，learn为deepq.py文件中的learn函数
     learn = get_learn_function(args.alg)
+    # 此处为空，因为deepq模块没有对应属性{}
     alg_kwargs = get_learn_function_defaults(args.alg, env_type)
     alg_kwargs.update(extra_args)
 
@@ -69,10 +74,12 @@ def train(args, extra_args):
         alg_kwargs['network'] = args.network
     else:
         if alg_kwargs.get('network') is None:
+            # alg_kwargs['network'] 赋值为 mlp 多层感知机
             alg_kwargs['network'] = get_default_network(env_type)
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
 
+    # 调用对应算法的learn函数
     model = learn(
         env=env,
         seed=seed,
@@ -110,6 +117,8 @@ def build_env(args):
         get_session(config=config)
 
         flatten_dict_observations = alg not in {'her'}
+        # CartPole-v0, classic_control, 1, None, 1.0, True
+        # 返回 Monitor 类
         env = make_vec_env(env_id, env_type, args.num_env or 1, seed, reward_scale=args.reward_scale, flatten_dict_observations=flatten_dict_observations)
 
         if env_type == 'mujoco':
@@ -119,6 +128,7 @@ def build_env(args):
 
 
 def get_env_type(args):
+    # CartPole-v0
     env_id = args.env
 
     if args.env_type is not None:
@@ -151,6 +161,7 @@ def get_default_network(env_type):
     else:
         return 'mlp'
 
+# 引入对应的模型
 def get_alg_module(alg, submodule=None):
     submodule = submodule or alg
     try:
@@ -203,7 +214,11 @@ def main(args):
     # configure logger, disable logging in child MPI processes (with rank > 0)
 
     arg_parser = common_arg_parser()
+    # alg='deepq', env='CartPole-v0', env_type=None, gamestate=None, log_path=None, network=None,
+    # num_env=None, num_timesteps=100000.0, play=False, reward_scale=1.0, save_path='./cartpole_model.pkl',
+    # save_video_interval=0, save_video_length=200, seed=None
     args, unknown_args = arg_parser.parse_known_args(args)
+    # 处理没有正确解析的参数，例如 --alg=deepq 少写一个空格错误输入成了 --alg deepq（以空格进行输入）
     extra_args = parse_cmdline_kwargs(unknown_args)
 
     if MPI is None or MPI.COMM_WORLD.Get_rank() == 0:
@@ -228,8 +243,9 @@ def main(args):
 
         episode_rew = np.zeros(env.num_envs) if isinstance(env, VecEnv) else np.zeros(1)
         while True:
+            # 如果有初始状态
             if state is not None:
-                actions, _, state, _ = model.step(obs,S=state, M=dones)
+                actions, _, state, _ = model.step(obs, S=state, M=dones)
             else:
                 actions, _, _, _ = model.step(obs)
 

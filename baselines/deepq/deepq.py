@@ -92,6 +92,7 @@ def load_act(path):
     return ActWrapper.load_act(path)
 
 
+# env = env, seed = seed, total_timesteps = total_timesteps, alg_kwargs['network'] = "mlp"
 def learn(env,
           network,
           seed=None,
@@ -100,11 +101,13 @@ def learn(env,
           buffer_size=50000,
           exploration_fraction=0.1,
           exploration_final_eps=0.02,
+          # 每 train_freq step 更新一次模型
           train_freq=1,
           batch_size=32,
           print_freq=100,
           checkpoint_freq=10000,
           checkpoint_path=None,
+          # 开始训练前需要收集多少transition的信息
           learning_starts=1000,
           gamma=1.0,
           target_network_update_freq=500,
@@ -189,6 +192,9 @@ def learn(env,
     sess = get_session()
     set_global_seeds(seed)
 
+    print("deepq.py network parameter", network)
+    print("deepq.py network_kwargs parameter", network_kwargs)
+    # q_func 得到对每个动作的评分
     q_func = build_q_func(network, **network_kwargs)
 
     # capture the shape outside the closure so that the env object is not serialized
@@ -199,6 +205,7 @@ def learn(env,
         return ObservationInput(observation_space, name=name)
 
     act, train, update_target, debug = deepq.build_train(
+        # 输入的 observation_space 表示为 batch * obs.shape * one-hot_dim
         make_obs_ph=make_obs_ph,
         q_func=q_func,
         num_actions=env.action_space.n,
