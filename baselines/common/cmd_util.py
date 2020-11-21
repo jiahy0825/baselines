@@ -2,6 +2,8 @@
 Helpers for scripts like run_atari.py.
 """
 
+# 本文件对命令行传入参数进行解析
+
 import os
 try:
     from mpi4py import MPI
@@ -19,6 +21,7 @@ from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common import retro_wrappers
 from baselines.common.wrappers import ClipActionsWrapper
 
+# CartPole-v0, classic_control, 1, None, reward_scale = 1.0, flatten_dict_observations = True
 def make_vec_env(env_id, env_type, num_env, seed,
                  wrapper_kwargs=None,
                  env_kwargs=None,
@@ -56,9 +59,10 @@ def make_vec_env(env_id, env_type, num_env, seed,
     if not force_dummy and num_env > 1:
         return SubprocVecEnv([make_thunk(i + start_index, initializer=initializer) for i in range(num_env)])
     else:
+        # 创建多个异步的env，加快训练速度
         return DummyVecEnv([make_thunk(i + start_index, initializer=None) for i in range(num_env)])
 
-
+# CartPole-v0, classic_control
 def make_env(env_id, env_type, mpi_rank=0, subrank=0, seed=None, reward_scale=1.0, gamestate=None, flatten_dict_observations=True, wrapper_kwargs=None, env_kwargs=None, logger_dir=None, initializer=None):
     if initializer is not None:
         initializer(mpi_rank=mpi_rank, subrank=subrank)
@@ -78,16 +82,17 @@ def make_env(env_id, env_type, mpi_rank=0, subrank=0, seed=None, reward_scale=1.
         gamestate = gamestate or retro.State.DEFAULT
         env = retro_wrappers.make_retro(game=env_id, max_episode_steps=10000, use_restricted_actions=retro.Actions.DISCRETE, state=gamestate)
     else:
+        # 得到 CartPole-v0 环境
         env = gym.make(env_id, **env_kwargs)
 
     if flatten_dict_observations and isinstance(env.observation_space, gym.spaces.Dict):
         env = FlattenObservation(env)
 
     env.seed(seed + subrank if seed is not None else None)
+    # 监控 env 所走每一步的奖励值等信息
     env = Monitor(env,
                   logger_dir and os.path.join(logger_dir, str(mpi_rank) + '.' + str(subrank)),
                   allow_early_resets=True)
-
 
     if env_type == 'atari':
         env = wrap_deepmind(env, **wrapper_kwargs)
@@ -152,6 +157,7 @@ def mujoco_arg_parser():
     print('Obsolete - use common_arg_parser instead')
     return common_arg_parser()
 
+# 构建想要解析的命令行内容
 def common_arg_parser():
     """
     Create an argparse.ArgumentParser for run_mujoco.py.
@@ -161,6 +167,7 @@ def common_arg_parser():
     parser.add_argument('--env_type', help='type of environment, used when the environment type cannot be automatically determined', type=str)
     parser.add_argument('--seed', help='RNG seed', type=int, default=None)
     parser.add_argument('--alg', help='Algorithm', type=str, default='ppo2')
+    # use redundant symbol "," at the end of the line
     parser.add_argument('--num_timesteps', type=float, default=1e6),
     parser.add_argument('--network', help='network type (mlp, cnn, lstm, cnn_lstm, conv_only)', default=None)
     parser.add_argument('--gamestate', help='game state to load (so far only used in retro games)', default=None)
@@ -183,7 +190,7 @@ def robotics_arg_parser():
     parser.add_argument('--num-timesteps', type=int, default=int(1e6))
     return parser
 
-
+# 解析不能正确识别的命令行参数
 def parse_unknown_args(args):
     """
     Parse arguments not consumed by arg parser into a dictionary

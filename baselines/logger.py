@@ -379,6 +379,7 @@ def configure(dir=None, format_strs=None, comm=None, log_suffix=''):
         dir = osp.join(tempfile.gettempdir(),
             datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
     assert isinstance(dir, str)
+    # 将 dir 中的用户路径 ~ 替换成绝对路径名称
     dir = os.path.expanduser(dir)
     os.makedirs(os.path.expanduser(dir), exist_ok=True)
 

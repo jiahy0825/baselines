@@ -93,6 +93,7 @@ def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, layer_norm=False):
     def network_fn(X):
         h = tf.layers.flatten(X)
         for i in range(num_layers):
+            # 使用矩阵实现fully connected layer
             h = fc(h, 'mlp_fc{}'.format(i), nh=num_hidden, init_scale=np.sqrt(2))
             if layer_norm:
                 h = tf.contrib.layers.layer_norm(h, center=True, scale=True)

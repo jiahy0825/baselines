@@ -15,6 +15,7 @@ class DummyVecEnv(VecEnv):
 
         env_fns: iterable of callables      functions that build environments
         """
+        # Moniter 类监控环境信息
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
         VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space)
@@ -39,6 +40,7 @@ class DummyVecEnv(VecEnv):
         if not listify:
             self.actions = actions
         else:
+            # action 数量和 env 数量不匹配，此时要保证只有一个env，所有的action视为该env产生
             assert self.num_envs == 1, "actions {} is either not a list or has a wrong size - cannot match to {} environments".format(actions, self.num_envs)
             self.actions = [actions]
 

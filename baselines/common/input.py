@@ -52,6 +52,7 @@ def encode_observation(ob_space, placeholder):
     placeholder: tf.placeholder     observation input placeholder
     '''
     if isinstance(ob_space, Discrete):
+        # placeholder 中的值小于 ob_space.n， ob_space.n是进行one-hot编码后的维度
         return tf.to_float(tf.one_hot(placeholder, ob_space.n))
     elif isinstance(ob_space, Box):
         return tf.to_float(placeholder)

@@ -24,6 +24,7 @@ def build_q_func(network, hiddens=[256], dueling=True, layer_norm=False, **netwo
                     if layer_norm:
                         action_out = layers.layer_norm(action_out, center=True, scale=True)
                     action_out = tf.nn.relu(action_out)
+                # 输出对每一个动作的评分
                 action_scores = layers.fully_connected(action_out, num_outputs=num_actions, activation_fn=None)
 
             if dueling:
@@ -34,12 +35,15 @@ def build_q_func(network, hiddens=[256], dueling=True, layer_norm=False, **netwo
                         if layer_norm:
                             state_out = layers.layer_norm(state_out, center=True, scale=True)
                         state_out = tf.nn.relu(state_out)
+                    # 对输入状态的评分
                     state_score = layers.fully_connected(state_out, num_outputs=1, activation_fn=None)
+                # 对动作评分做正则化
                 action_scores_mean = tf.reduce_mean(action_scores, 1)
                 action_scores_centered = action_scores - tf.expand_dims(action_scores_mean, 1)
                 q_out = state_score + action_scores_centered
             else:
                 q_out = action_scores
+            # 最后输出对每个动作的评分
             return q_out
 
     return q_func_builder
