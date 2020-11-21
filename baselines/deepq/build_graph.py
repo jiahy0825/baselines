@@ -184,6 +184,7 @@ def build_act(make_obs_ph, q_func, num_actions, scope="deepq", reuse=None):
         deterministic_actions = tf.argmax(q_values, axis=1)
 
         batch_size = tf.shape(observations_ph.get())[0]
+        # epsilon-greedy 的实现方法
         random_actions = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=num_actions, dtype=tf.int64)
         chose_random = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=1, dtype=tf.float32) < eps
         stochastic_actions = tf.where(chose_random, random_actions, deterministic_actions)
@@ -334,8 +335,6 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
         and returns a tensor of shape (batch_size, num_actions) with values of every action.
     num_actions: int
         number of actions
-    reuse: bool
-        whether or not to reuse the graph variables
     optimizer: tf.train.Optimizer
         optimizer to use for the Q-learning objective.
     grad_norm_clipping: float or None
@@ -393,9 +392,11 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
         target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=tf.get_variable_scope().name + "/target_q_func")
 
         # q scores for actions which we know were selected in the given state.
+        # 得到的是执行动作的评分， Q(s, a)
         q_t_selected = tf.reduce_sum(q_t * tf.one_hot(act_t_ph, num_actions), 1)
 
         # compute estimate of best possible value starting from state at t + 1
+        # 计算 max_a' Q(s', a')
         if double_q:
             q_tp1_using_online_net = q_func(obs_tp1_input.get(), num_actions, scope="q_func", reuse=True)
             q_tp1_best_using_online_net = tf.argmax(q_tp1_using_online_net, 1)
@@ -409,11 +410,13 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
 
         # compute the error (potentially clipped)
         td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
+        # 一种新的 loss 函数
         errors = U.huber_loss(td_error)
         weighted_error = tf.reduce_mean(importance_weights_ph * errors)
 
         # compute optimization op (potentially with gradient clipping)
         if grad_norm_clipping is not None:
+            # 使用 gradient clipping 的代码
             gradients = optimizer.compute_gradients(weighted_error, var_list=q_func_vars)
             for i, (grad, var) in enumerate(gradients):
                 if grad is not None:
